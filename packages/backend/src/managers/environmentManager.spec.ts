@@ -81,12 +81,13 @@ beforeEach(() => {
   );
 });
 
-test('adoptRunningEnvironments updates the environment state with the found pod', async () => {
+test('adoptRunningEnvironments updates the environment state with the found running pod', async () => {
   mocks.listPods.mockResolvedValue([
     {
       Labels: {
         'ai-studio-recipe-id': 'recipe-id-1',
       },
+      Status: 'Running',
     },
   ]);
   mocks.startupSubscribe.mockImplementation((f: startupHandle) => {
@@ -100,8 +101,37 @@ test('adoptRunningEnvironments updates the environment state with the found pod'
       Labels: {
         'ai-studio-recipe-id': 'recipe-id-1',
       },
+      Status: 'Running',
     },
     recipeId: 'recipe-id-1',
+    status: 'running',
+  });
+});
+
+test('adoptRunningEnvironments updates the environment state with the found stopped pod', async () => {
+  mocks.listPods.mockResolvedValue([
+    {
+      Labels: {
+        'ai-studio-recipe-id': 'recipe-id-1',
+      },
+      Status: 'Exited',
+    },
+  ]);
+  mocks.startupSubscribe.mockImplementation((f: startupHandle) => {
+    f();
+  });
+  const updateEnvironmentStateSpy = vi.spyOn(manager, 'updateEnvironmentState');
+  manager.adoptRunningEnvironments();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(updateEnvironmentStateSpy).toHaveBeenNthCalledWith(1, 'recipe-id-1', {
+    pod: {
+      Labels: {
+        'ai-studio-recipe-id': 'recipe-id-1',
+      },
+      Status: 'Exited',
+    },
+    recipeId: 'recipe-id-1',
+    status: 'stopped',
   });
 });
 
@@ -121,9 +151,10 @@ test('onMachineStop updates the environments state with no environment running',
   mocks.onMachineStop.mockImplementation((f: machineStopHandle) => {
     f();
   });
-  const sendEnvironmentStateSpy = vi.spyOn(manager, 'sendEnvironmentState').mockResolvedValue();
+  const postMessageSpy = mocks.postMessage.mockResolvedValue(undefined);
   manager.adoptRunningEnvironments();
-  expect(sendEnvironmentStateSpy).toHaveBeenCalledOnce();
+  expect(postMessageSpy).toHaveBeenCalledOnce();
+  expect(postMessageSpy).toHaveBeenNthCalledWith(1, { id: 'environments-state-update', body: [] });
 });
 
 test('onPodStart updates the environments state with the started pod', async () => {
@@ -137,11 +168,26 @@ test('onPodStart updates the environments state with the started pod', async () 
       Labels: {
         'ai-studio-recipe-id': 'recipe-id-1',
       },
+      Status: 'Running',
     } as unknown as PodInfo);
   });
-  const sendEnvironmentStateSpy = vi.spyOn(manager, 'sendEnvironmentState').mockResolvedValue();
+  mocks.postMessage.mockResolvedValue(undefined);
+  const updateEnvironmentStateSpy = vi.spyOn(manager, 'updateEnvironmentState');
   manager.adoptRunningEnvironments();
-  expect(sendEnvironmentStateSpy).toHaveBeenCalledOnce();
+  expect(updateEnvironmentStateSpy).toHaveBeenCalledOnce();
+  expect(updateEnvironmentStateSpy).toHaveBeenNthCalledWith(1, 'recipe-id-1', {
+    pod: {
+      engineId: 'engine-1',
+      engineName: 'Engine 1',
+      kind: 'podman',
+      Labels: {
+        'ai-studio-recipe-id': 'recipe-id-1',
+      },
+      Status: 'Running',
+    },
+    recipeId: 'recipe-id-1',
+    status: 'running',
+  });
 });
 
 test('onPodStart does no update the environments state with the started pod without labels', async () => {
@@ -159,7 +205,7 @@ test('onPodStart does no update the environments state with the started pod with
   expect(sendEnvironmentStateSpy).not.toHaveBeenCalledOnce();
 });
 
-test('onPodStop updates the environments state by removing the stopped pod', async () => {
+test('onPodStop updates the environments state with the stopped pod', async () => {
   mocks.startupSubscribe.mockImplementation((f: startupHandle) => {
     f();
   });
@@ -180,13 +226,28 @@ test('onPodStop updates the environments state by removing the stopped pod', asy
         Labels: {
           'ai-studio-recipe-id': 'recipe-id-1',
         },
+        Status: 'Exited',
       } as unknown as PodInfo);
     }, 1);
   });
-  const sendEnvironmentStateSpy = vi.spyOn(manager, 'sendEnvironmentState').mockResolvedValue();
+  mocks.postMessage.mockResolvedValue(undefined);
+  const updateEnvironmentStateSpy = vi.spyOn(manager, 'updateEnvironmentState');
   manager.adoptRunningEnvironments();
   await new Promise(resolve => setTimeout(resolve, 10));
-  expect(sendEnvironmentStateSpy).toHaveBeenCalledTimes(2);
+  expect(updateEnvironmentStateSpy).toHaveBeenCalledTimes(2);
+  expect(updateEnvironmentStateSpy).toHaveBeenNthCalledWith(2, 'recipe-id-1', {
+    pod: {
+      engineId: 'engine-1',
+      engineName: 'Engine 1',
+      kind: 'podman',
+      Labels: {
+        'ai-studio-recipe-id': 'recipe-id-1',
+      },
+      Status: 'Exited',
+    },
+    recipeId: 'recipe-id-1',
+    status: 'stopped',
+  });
 });
 
 test('onPodRemove updates the environments state by removing the removed pod', async () => {
@@ -207,8 +268,9 @@ test('onPodRemove updates the environments state by removing the removed pod', a
       f('pod-id-1');
     }, 1);
   });
-  const sendEnvironmentStateSpy = vi.spyOn(manager, 'sendEnvironmentState').mockResolvedValue();
+  const postMessageSpy = mocks.postMessage.mockResolvedValue(undefined);
   manager.adoptRunningEnvironments();
   await new Promise(resolve => setTimeout(resolve, 10));
-  expect(sendEnvironmentStateSpy).toHaveBeenCalledTimes(2);
+  expect(postMessageSpy).toHaveBeenCalledTimes(2);
+  expect(postMessageSpy).toHaveBeenNthCalledWith(2, { id: 'environments-state-update', body: [] });
 });

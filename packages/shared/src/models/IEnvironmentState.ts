@@ -18,7 +18,10 @@
 
 import type { PodInfo } from '@podman-desktop/api';
 
+export type EnvironmentStatus = 'none' | 'stopped' | 'unknown' | 'starting' | 'running';
+
 export interface EnvironmentState {
   recipeId: string;
   pod: PodInfo;
+  status: EnvironmentStatus;
 }

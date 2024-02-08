@@ -5,9 +5,11 @@ import Table from '../lib/table/Table.svelte';
 import { Column, Row } from '../lib/table/table';
 import { environmentStates } from '/@/stores/environment-states';
 import ColumnName from '../lib/table/environment/ColumnName.svelte';
+  import ColumnStatus from '../lib/table/environment/ColumnStatus.svelte';
 
 const columns: Column<EnvironmentState>[] = [
   new Column<EnvironmentState>('Name', { width: '3fr', renderer: ColumnName }),
+  new Column<EnvironmentState>('Status', { width: '80px', renderer: ColumnStatus }),
 ];
 const row = new Row<EnvironmentState>({});
 </script>

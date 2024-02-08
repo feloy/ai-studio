@@ -53,7 +53,7 @@ export class EnvironmentManager {
     });
 
     this.podmanConnection.onMachineStop(() => {
-      // Podman Machine has been stopped, we consider all recipe pods are stopped
+      // Podman Machine has been stopped, we consider all recipe pods are removed
       this.#environments.clear();
       this.sendEnvironmentState();
     });
@@ -62,7 +62,7 @@ export class EnvironmentManager {
       this.adoptPod(pod);
     });
     this.podmanConnection.onPodStop((pod: PodInfo) => {
-      this.forgetPod(pod);
+      this.adoptPod(pod);
     });
     this.podmanConnection.onPodRemove((podId: string) => {
       this.forgetPodById(podId);
@@ -71,29 +71,30 @@ export class EnvironmentManager {
 
   adoptPod(pod: PodInfo) {
     if (!pod.Labels) {
+      console.error('no label found on pod');
       return;
     }
     const recipeId = pod.Labels[LABEL_RECIPE_ID];
-    if (this.#environments.has(recipeId)) {
-      return;
-    }
     const state: EnvironmentState = {
       recipeId,
       pod,
+      status: 'none',
     };
+    switch (pod.Status) {
+      case 'Exited':
+        state.status = 'stopped';
+        break;
+      case 'Running':
+        state.status = 'running';
+        break;
+      case 'Degraded':
+        state.status = 'starting';
+        break;
+      default:
+        state.status = 'unknown';
+        console.error('unhandled pod status in environment: ', pod.Status);
+    }
     this.updateEnvironmentState(recipeId, state);
-  }
-
-  forgetPod(pod: PodInfo) {
-    if (!pod.Labels) {
-      return;
-    }
-    const recipeId = pod.Labels[LABEL_RECIPE_ID];
-    if (!this.#environments.has(recipeId)) {
-      return;
-    }
-    this.#environments.delete(recipeId);
-    this.sendEnvironmentState();
   }
 
   forgetPodById(podId: string) {

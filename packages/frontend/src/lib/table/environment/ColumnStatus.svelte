@@ -4,5 +4,5 @@
 </script>
 
 <div class="text-sm text-gray-700">
-  {object.recipeId}
+  {object.status}
 </div>
