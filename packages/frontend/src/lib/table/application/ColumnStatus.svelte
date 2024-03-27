@@ -1,21 +1,11 @@
 <script lang="ts">
 import type { Task } from '@shared/src/models/ITask';
-import type { ApplicationCell } from '../../../pages/applications';
-import TaskItem from '../../progress/TaskItem.svelte';
-export let object: ApplicationCell;
+import { getApplicationStatus } from '../../../pages/applications';
+import type { ApplicationState } from '@shared/src/models/IApplicationState';
+import StatusIcon from '../../StatusIcon.svelte';
+import PodIcon from '../../images/PodIcon.svelte';
+export let object: ApplicationState;
 let task: Task | undefined = undefined;
-
-$: {
-  if (object.tasks && object.tasks.length > 0) {
-    task = object.tasks[object.tasks.length - 1];
-  }
-}
 </script>
 
-<div class="text-sm text-gray-700 overflow-hidden text-ellipsis">
-  {#if task}
-    <TaskItem task="{task}" />
-  {:else if !!object.appState.pod}
-    Pod running
-  {/if}
-</div>
+<StatusIcon size="{22}" status="{getApplicationStatus(object)}" icon="{PodIcon}" />

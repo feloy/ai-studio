@@ -19,6 +19,7 @@ import { filterByLabel } from '/@/utils/taskUtils';
 import PodIcon from '/@/lib/images/PodIcon.svelte';
 import StatusIcon from '/@/lib/StatusIcon.svelte';
 import type { ModelInfo } from '@shared/src/models/IModelInfo';
+import { getApplicationStatus, getApplicationStatusText } from '../pages/applications';
 
 export let recipeId: string;
 export let modelId: string;
@@ -72,14 +73,14 @@ function startApplication() {
     {#if appState && appState.pod}
       <div class="grow flex overflow-hidden whitespace-nowrap items-center">
         <a title="Navigate to Pod details" href="{'javascript:void(0);'}" on:click="{navigateToPod}">
-          <StatusIcon size="{22}" status="{appState.pod.Status.toUpperCase()}" icon="{PodIcon}" />
+          <StatusIcon size="{22}" status="{getApplicationStatus(appState)}" icon="{PodIcon}" />
         </a>
         <div class="ml-2 overflow-hidden">
           <div class="text-base text-gray-300 overflow-hidden text-ellipsis leading-tight">
             {appState.pod.Name}
           </div>
-          <div class="text-xs text-gray-800 leading-tight">
-            {appState.pod.Status.toUpperCase()}
+          <div class="text-xs text-gray-800 leading-tight uppercase">
+            {getApplicationStatusText(appState)}
           </div>
         </div>
       </div>
